@@ -1,0 +1,610 @@
+<title>Đúng hay Sai</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: một trang vở ô ly ở giữa; bảng thưởng 10 cấp nằm trên cùng, câu hỏi lớn ở giữa, hai nút Đúng/Sai ngang hàng, dấu mộc chấm bài bằng bút đỏ. */
+:root {
+  --paper: #f3f7fb;
+  --grid: #cfdceb;
+  --sheet: #fbfdff;
+  --ink: #1c2b4a;
+  --muted: #5b6b86;
+  --pen: #2a4fd6;
+  --ok: #1f7a4d;
+  --bad: #c8302a;
+  --line: #b9c9dd;
+  --font-display: "Patrick Hand", "Segoe Print", "Comic Sans MS", cursive;
+  --font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111a2b;
+    --grid: #1f2d47;
+    --sheet: #172238;
+    --ink: #e6ecf8;
+    --muted: #9aa9c4;
+    --pen: #8aa4ff;
+    --ok: #5fd09a;
+    --bad: #ff8078;
+    --line: #2d3f60;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111a2b;
+  --grid: #1f2d47;
+  --sheet: #172238;
+  --ink: #e6ecf8;
+  --muted: #9aa9c4;
+  --pen: #8aa4ff;
+  --ok: #5fd09a;
+  --bad: #ff8078;
+  --line: #2d3f60;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100vh;
+  padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { width: 100%; max-width: 640px; margin: 0 auto; }
+.sheet {
+  background: var(--sheet);
+  border: 2px solid var(--ink);
+  padding: 22px 20px 24px;
+  box-shadow: 5px 5px 0 var(--ink);
+  min-width: 0;
+}
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.brand { font-family: var(--font-display); font-size: 22px; letter-spacing: .02em; color: var(--pen); }
+.stats { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 600; }
+h1 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; font-size: clamp(40px, 11vw, 58px); line-height: 1.05; margin-bottom: 10px; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 48ch; }
+.rules { list-style: none; padding: 0; margin: 16px 0 20px; display: grid; gap: 6px; font-size: 15px; }
+.rules li { padding-left: 18px; position: relative; }
+.rules li::before { content: "–"; position: absolute; left: 0; color: var(--pen); }
+kbd { font-family: var(--font-body); font-size: 12px; border: 1px solid var(--line); padding: 1px 6px; background: var(--paper); color: var(--ink); }
+.btn {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  padding: 14px 22px;
+  border: 2px solid var(--ink);
+  background: var(--sheet);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform .08s, box-shadow .08s, background .12s;
+}
+.btn:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+.btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--pen); outline-offset: 3px; }
+.btn.primary { background: var(--pen); color: var(--sheet); }
+.btn.sm { font-size: 19px; padding: 8px 12px; box-shadow: 2px 2px 0 var(--ink); }
+.btn.sm:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+.btn.sm.confirm { background: var(--bad); color: var(--sheet); }
+.best { margin-top: 16px; font-size: 14px; color: var(--muted); min-height: 1.5em; }
+
+/* Bảng thưởng: cột trái cấp 10 → 6, cột phải cấp 5 → 1 */
+.ladder { list-style: none; margin: 0 0 18px; padding: 0; display: grid; grid-auto-flow: column; grid-template-rows: repeat(5, auto); grid-template-columns: 1fr 1fr; gap: 4px 8px; }
+.ladder li { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; border: 1.5px solid var(--line); padding: 3px 9px; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 0; color: var(--muted); }
+.ladder li span:last-child { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.ladder li.ms span:first-child::after { content: " ★"; color: var(--pen); }
+.ladder li.done { border-color: var(--ok); }
+.ladder li.done span:last-child { color: var(--ok); }
+.ladder li.now { background: var(--ink); border-color: var(--ink); }
+.ladder li.now span { color: var(--sheet); }
+
+.qno { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; }
+.qno b { color: var(--ink); font-weight: 600; }
+.timer { height: 8px; border: 1.5px solid var(--ink); margin: 10px 0 16px; background: var(--paper); overflow: hidden; }
+.timer i { display: block; height: 100%; width: 100%; background: var(--pen); transform-origin: left; }
+.timer.low i { background: var(--bad); }
+.statement { font-family: var(--font-display); font-size: clamp(27px, 7.4vw, 36px); line-height: 1.25; text-wrap: balance; min-height: 3.8em; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.answers .btn { font-size: 32px; padding: 18px 10px; min-width: 0; }
+.answers .btn small { display: block; font-family: var(--font-body); font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: .04em; }
+.btn.is-right { background: var(--ok); color: var(--sheet); }
+.btn.is-right small { color: var(--sheet); }
+.btn.is-wrong { background: var(--bad); color: var(--sheet); }
+.btn.is-wrong small { color: var(--sheet); }
+.btn:disabled { cursor: default; }
+.answers .btn:disabled:not(.is-right):not(.is-wrong) { opacity: .55; }
+.helps { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+.helps .gap { flex: 1; }
+
+.feedback { margin-top: 18px; padding-top: 14px; border-top: 2px dashed var(--line); min-height: 6em; }
+.stamp {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1;
+  padding: 6px 14px 8px;
+  border: 3px solid currentColor;
+  border-radius: 6px;
+  transform: rotate(-3deg);
+  animation: stamp .28s cubic-bezier(.2, .9, .3, 1.2);
+}
+.stamp.ok { color: var(--ok); }
+.stamp.bad { color: var(--bad); }
+@keyframes stamp { from { transform: rotate(-9deg) scale(1.7); opacity: 0; } to { transform: rotate(-3deg) scale(1); opacity: 1; } }
+.explain { margin: 12px 0 6px; max-width: 54ch; }
+.holding { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
+.holding b { color: var(--ink); }
+.next-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.next-row .btn { font-size: 24px; padding: 11px 18px; }
+
+/* Kết quả */
+.kicker { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+.cheque { border: 2px solid var(--ink); outline: 2px solid var(--ink); outline-offset: 3px; padding: 16px 16px 14px; margin: 6px 3px 16px; background: var(--paper); }
+.cheque .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.cheque .amount { font-family: var(--font-display); font-size: clamp(38px, 12vw, 64px); line-height: 1.05; color: var(--bad); transform: rotate(-2deg); transform-origin: left; font-variant-numeric: tabular-nums; margin: 4px 0; overflow-wrap: anywhere; }
+.cheque .words { font-family: var(--font-display); font-size: 24px; line-height: 1.2; }
+.cheque .fine { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.remark { font-family: var(--font-display); font-size: 26px; line-height: 1.25; margin: 6px 0 16px; text-wrap: balance; }
+.summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 18px; }
+.summary div { border: 1.5px solid var(--line); padding: 10px 12px; min-width: 0; }
+.summary dt { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.summary dd { margin: 2px 0 0; font-family: var(--font-display); font-size: 26px; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.review { margin: 0 0 20px; padding: 12px 0 0; list-style: none; display: grid; gap: 8px; max-height: 280px; overflow-y: auto; border-top: 1.5px solid var(--line); }
+.review li { display: grid; grid-template-columns: 54px 22px 1fr; gap: 8px; font-size: 14px; min-width: 0; }
+.review .lv { color: var(--muted); font-variant-numeric: tabular-nums; }
+.review .mk { font-family: var(--font-display); font-size: 20px; line-height: 1.2; }
+.review .mk.ok { color: var(--ok); }
+.review .mk.bad { color: var(--bad); }
+.review span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.review em { font-style: normal; color: var(--muted); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.foot { margin-top: 14px; font-size: 13px; color: var(--muted); text-align: center; }
+@media (max-width: 420px) {
+  .sheet { padding: 18px 14px 20px; }
+  .ladder li { padding: 3px 7px; font-size: 12px; }
+  .summary dd { font-size: 22px; }
+  .review li { grid-template-columns: 46px 20px 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp { animation: none; }
+  .btn { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <main class="sheet">
+    <div class="top">
+      <div class="brand">Vở Đúng – Sai</div>
+      <div class="stats" id="stats" hidden>Đang có <b id="sHold">0 đ</b></div>
+    </div>
+
+    <ol class="ladder" id="ladder" aria-label="Bảng thưởng 10 cấp"></ol>
+
+    <section id="start">
+      <h1>Đúng hay Sai?</h1>
+      <p class="lead">Vượt qua 10 cấp, mỗi cấp một nhận định, độ khó tăng dần. Trả lời đúng cả 10 để nhận 2.000.000.000 đ tiền thưởng trong trò chơi.</p>
+      <ul class="rules">
+        <li>Trả lời sai là dừng bước. Bạn ra về với số tiền ở mốc an toàn gần nhất (cấp 5 và cấp 8, có dấu ★).</li>
+        <li>Càng lên cao, thời gian mỗi câu càng ngắn: 20, 15 rồi 12 giây. Hết giờ tính là sai.</li>
+        <li>Có hai quyền trợ giúp, mỗi quyền dùng một lần: đổi sang câu khác cùng cấp, hoặc cộng thêm 10 giây.</li>
+        <li>Bạn được dừng cuộc chơi để giữ số tiền đang có, trước khi trả lời câu tiếp theo.</li>
+        <li>Phím tắt: <kbd>←</kbd> hoặc <kbd>D</kbd> chọn Đúng, <kbd>→</kbd> hoặc <kbd>S</kbd> chọn Sai.</li>
+      </ul>
+      <button class="btn primary" id="btnStart" type="button">Bắt đầu cấp 1</button>
+      <p class="best" id="bestStart"></p>
+    </section>
+
+    <section id="play" hidden>
+      <div class="qno"><span id="qLevel"></span><span id="qPrize"></span></div>
+      <div class="timer" id="timer" role="timer" aria-label="Thời gian còn lại"><i id="timerBar"></i></div>
+      <p class="statement" id="statement"></p>
+      <div class="answers">
+        <button class="btn" id="btnTrue" type="button">Đúng<small>← hoặc D</small></button>
+        <button class="btn" id="btnFalse" type="button">Sai<small>→ hoặc S</small></button>
+      </div>
+      <div class="helps">
+        <button class="btn sm" id="btnSwap" type="button">Đổi câu</button>
+        <button class="btn sm" id="btnTime" type="button">+10 giây</button>
+        <span class="gap"></span>
+        <button class="btn sm" id="btnStop" type="button">Dừng cuộc chơi</button>
+      </div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+    </section>
+
+    <section id="end" hidden>
+      <div class="kicker" id="kicker"></div>
+      <div class="cheque">
+        <div class="lbl">Tiền thưởng nhận về</div>
+        <div class="amount" id="amount"></div>
+        <div class="words" id="words"></div>
+        <div class="fine">Tiền thưởng chỉ có trong trò chơi, không phải tiền thật.</div>
+      </div>
+      <p class="remark" id="remark"></p>
+      <dl class="summary">
+        <div><dt>Cấp đã vượt</dt><dd id="sumLevel"></dd></div>
+        <div><dt>Kỷ lục</dt><dd id="sumBest"></dd></div>
+        <div><dt>Lần thắng lớn</dt><dd id="sumWins"></dd></div>
+      </dl>
+      <ul class="review" id="review"></ul>
+      <div class="row">
+        <button class="btn primary" id="btnAgain" type="button">Chơi lại từ cấp 1</button>
+      </div>
+    </section>
+  </main>
+  <p class="foot">Mỗi cấp có vài câu hỏi, mỗi lượt chơi rút ngẫu nhiên một câu cho mỗi cấp. Tiền thưởng chỉ có trong trò chơi.</p>
+</div>
+
+<script>
+(function () {
+  var LEVELS = [
+    { prize: 5e6,   words: "Năm triệu đồng",              time: 20, ms: false, tag: "Dễ" },
+    { prize: 10e6,  words: "Mười triệu đồng",             time: 20, ms: false, tag: "Dễ" },
+    { prize: 20e6,  words: "Hai mươi triệu đồng",         time: 20, ms: false, tag: "Dễ" },
+    { prize: 40e6,  words: "Bốn mươi triệu đồng",         time: 15, ms: false, tag: "Vừa" },
+    { prize: 80e6,  words: "Tám mươi triệu đồng",         time: 15, ms: true,  tag: "Vừa" },
+    { prize: 150e6, words: "Một trăm năm mươi triệu đồng", time: 15, ms: false, tag: "Vừa" },
+    { prize: 300e6, words: "Ba trăm triệu đồng",          time: 12, ms: false, tag: "Khó" },
+    { prize: 600e6, words: "Sáu trăm triệu đồng",         time: 12, ms: true,  tag: "Khó" },
+    { prize: 1e9,   words: "Một tỷ đồng",                 time: 12, ms: false, tag: "Rất khó" },
+    { prize: 2e9,   words: "Hai tỷ đồng",                 time: 12, ms: false, tag: "Rất khó" }
+  ];
+
+  var BANK = [
+    /* Cấp 1 */ [
+      { t: "Hà Nội là thủ đô của Việt Nam.", a: true, e: "Hà Nội là thủ đô từ năm 1010, khi vua Lý Thái Tổ dời đô ra Thăng Long." },
+      { t: "Quốc kỳ Việt Nam có ngôi sao vàng sáu cánh trên nền đỏ.", a: false, e: "Ngôi sao trên quốc kỳ có năm cánh, không phải sáu." },
+      { t: "Cá voi là một loài cá.", a: false, e: "Cá voi là động vật có vú. Chúng thở bằng phổi và nuôi con bằng sữa." }
+    ],
+    /* Cấp 2 */ [
+      { t: "Mặt Trời là một hành tinh.", a: false, e: "Mặt Trời là một ngôi sao. Các hành tinh quay quanh nó." },
+      { t: "Một năm nhuận có 366 ngày.", a: true, e: "Năm nhuận thêm ngày 29 tháng 2, nên có 366 ngày thay vì 365." },
+      { t: "Ếch là động vật lưỡng cư.", a: true, e: "Ếch sống được cả dưới nước lẫn trên cạn. Nòng nọc thở bằng mang, ếch trưởng thành thở bằng phổi và da." }
+    ],
+    /* Cấp 3 */ [
+      { t: "Ở áp suất khí quyển tiêu chuẩn, nước sôi ở 100°C.", a: true, e: "Ở mực nước biển nước sôi ở 100°C. Trên núi cao, áp suất thấp hơn nên nước sôi ở nhiệt độ thấp hơn." },
+      { t: "Thủ đô của nước Úc là Sydney.", a: false, e: "Thủ đô của Úc là Canberra. Sydney chỉ là thành phố lớn nhất." },
+      { t: "Sao Kim là hành tinh gần Mặt Trời nhất.", a: false, e: "Sao Thủy mới là hành tinh gần Mặt Trời nhất. Sao Kim đứng thứ hai." },
+      { t: "Chữ Quốc ngữ của tiếng Việt dùng bảng chữ cái Latinh.", a: true, e: "Chữ Quốc ngữ dùng chữ cái Latinh kèm dấu thanh và dấu phụ." }
+    ],
+    /* Cấp 4 */ [
+      { t: "Phan Xi Păng là đỉnh núi cao nhất Việt Nam.", a: true, e: "Đỉnh Phan Xi Păng ở dãy Hoàng Liên Sơn cao khoảng 3.143 m, được gọi là nóc nhà Đông Dương." },
+      { t: "Máu trong tĩnh mạch của người có màu xanh.", a: false, e: "Máu luôn có màu đỏ. Máu nghèo oxy chỉ đỏ sẫm hơn, còn tĩnh mạch trông xanh vì cách ánh sáng đi qua da." },
+      { t: "Đà Lạt nằm trên cao nguyên Lâm Viên.", a: true, e: "Đà Lạt ở độ cao khoảng 1.500 m trên cao nguyên Lâm Viên, nên khí hậu mát quanh năm." },
+      { t: "Huế từng là kinh đô của triều Nguyễn.", a: true, e: "Triều Nguyễn đóng đô ở Huế từ năm 1802 đến năm 1945." }
+    ],
+    /* Cấp 5 */ [
+      { t: "Vịnh Hạ Long được UNESCO công nhận là Di sản thiên nhiên thế giới.", a: true, e: "Vịnh Hạ Long được ghi danh lần đầu năm 1994 vì giá trị cảnh quan, và công nhận thêm giá trị địa chất năm 2000." },
+      { t: "Đường bờ biển Việt Nam dài hơn 3.000 km.", a: true, e: "Bờ biển Việt Nam dài khoảng 3.260 km, chạy từ Móng Cái đến Hà Tiên." },
+      { t: "Cá mập thuộc nhóm cá xương.", a: false, e: "Cá mập thuộc nhóm cá sụn. Bộ xương của chúng làm bằng sụn, không phải xương cứng." }
+    ],
+    /* Cấp 6 */ [
+      { t: "Kim cương được tạo thành chủ yếu từ nguyên tố carbon.", a: true, e: "Kim cương và than chì đều là carbon, chỉ khác nhau ở cách sắp xếp nguyên tử." },
+      { t: "Bằng mắt thường, người ta nhìn thấy Vạn Lý Trường Thành từ Mặt Trăng.", a: false, e: "Từ Mặt Trăng không thể thấy công trình này bằng mắt thường. Nó quá hẹp so với khoảng cách hơn 380.000 km." },
+      { t: "Con người chỉ sử dụng khoảng 10% bộ não.", a: false, e: "Đây là hiểu lầm phổ biến. Hình ảnh chụp não cho thấy gần như mọi vùng đều hoạt động ở những thời điểm khác nhau." }
+    ],
+    /* Cấp 7 */ [
+      { t: "Bạch tuộc có ba trái tim.", a: true, e: "Hai trái tim đưa máu qua mang, một trái tim lớn đưa máu đi khắp cơ thể." },
+      { t: "Trong cơn giông, ta nghe thấy tiếng sấm trước khi nhìn thấy tia chớp.", a: false, e: "Ánh sáng truyền nhanh hơn âm thanh rất nhiều, nên ta thấy chớp trước rồi mới nghe sấm." },
+      { t: "Về mặt thực vật học, quả cà chua là một loại quả.", a: true, e: "Cà chua phát triển từ bầu nhụy của hoa và chứa hạt, nên về thực vật học nó là quả." }
+    ],
+    /* Cấp 8 */ [
+      { t: "Ánh sáng từ Mặt Trời mất khoảng 8 phút để đến Trái Đất.", a: true, e: "Khoảng cách trung bình khoảng 150 triệu km, ánh sáng đi hết khoảng 8 phút 20 giây." },
+      { t: "Thủ đô của Canada là Toronto.", a: false, e: "Thủ đô của Canada là Ottawa. Toronto là thành phố đông dân nhất." },
+      { t: "Chiến dịch Điện Biên Phủ kết thúc thắng lợi vào năm 1954.", a: true, e: "Chiến thắng Điện Biên Phủ kết thúc ngày 7 tháng 5 năm 1954." }
+    ],
+    /* Cấp 9 */ [
+      { t: "Đỉnh Everest nằm hoàn toàn trong lãnh thổ Nepal.", a: false, e: "Đỉnh Everest nằm trên biên giới giữa Nepal và Trung Quốc (Tây Tạng)." },
+      { t: "Trên Sao Kim, một ngày dài hơn một năm.", a: true, e: "Sao Kim tự quay quanh trục mất khoảng 243 ngày Trái Đất, còn một vòng quanh Mặt Trời chỉ khoảng 225 ngày." },
+      { t: "Mật ong bảo quản kín gần như không bao giờ bị hỏng.", a: true, e: "Mật ong rất ít nước và có tính axit nhẹ, vi khuẩn khó phát triển. Mật ong cổ vẫn còn ăn được trong nhiều phát hiện khảo cổ." }
+    ],
+    /* Cấp 10 */ [
+      { t: "Mỗi vùng trên lưỡi chỉ nếm được một vị riêng: đầu lưỡi vị ngọt, mép lưỡi vị chua.", a: false, e: "\"Bản đồ vị giác\" là hiểu lầm. Mọi vùng của lưỡi đều nếm được các vị cơ bản, chỉ khác nhau chút ít về độ nhạy." },
+      { t: "Dơi là loài thú duy nhất có khả năng bay thực sự.", a: true, e: "Các loài thú khác chỉ lượn. Dơi là nhóm thú duy nhất vỗ cánh để bay chủ động." },
+      { t: "Sông Mê Kông chảy qua sáu quốc gia.", a: true, e: "Mê Kông chảy qua Trung Quốc, Myanmar, Lào, Thái Lan, Campuchia và Việt Nam." }
+    ]
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = {
+    start: $("start"), play: $("play"), end: $("end"), stats: $("stats"), sHold: $("sHold"),
+    ladder: $("ladder"), qLevel: $("qLevel"), qPrize: $("qPrize"),
+    timer: $("timer"), bar: $("timerBar"), statement: $("statement"),
+    bTrue: $("btnTrue"), bFalse: $("btnFalse"), bSwap: $("btnSwap"), bTime: $("btnTime"), bStop: $("btnStop"),
+    feedback: $("feedback"), kicker: $("kicker"), amount: $("amount"), words: $("words"),
+    remark: $("remark"), sumLevel: $("sumLevel"), sumBest: $("sumBest"), sumWins: $("sumWins"),
+    review: $("review"), bestStart: $("bestStart")
+  };
+
+  var pools = [], lvl = 0, won = 0, safe = 0, used = { swap: false, time: false };
+  var answered = false, deadline = 0, totalMs = 0, raf = 0, screen = "start", log = [];
+  var outcome = "", payout = 0, reached = 0, stopArm = 0;
+
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " đ"; }
+  function short(n) {
+    if (n >= 1e9) return (n / 1e9) + " tỷ";
+    return (n / 1e6) + " tr";
+  }
+
+  function getStore() {
+    try {
+      var o = JSON.parse(localStorage.getItem("dhs-v2") || "null");
+      if (o && typeof o.best === "number") return { best: o.best, wins: o.wins || 0 };
+    } catch (e) {}
+    return { best: 0, wins: 0, fresh: true };
+  }
+  function setStore(o) { try { localStorage.setItem("dhs-v2", JSON.stringify({ best: o.best, wins: o.wins })); } catch (e) {} }
+
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function buildLadder() {
+    el.ladder.innerHTML = "";
+    for (var i = LEVELS.length - 1; i >= 0; i--) {
+      var li = document.createElement("li");
+      li.id = "rung" + i;
+      if (LEVELS[i].ms) li.className = "ms";
+      var a = document.createElement("span");
+      a.textContent = "Cấp " + (i + 1);
+      var b = document.createElement("span");
+      b.textContent = short(LEVELS[i].prize);
+      li.appendChild(a); li.appendChild(b);
+      el.ladder.appendChild(li);
+    }
+  }
+  function paintLadder() {
+    for (var i = 0; i < LEVELS.length; i++) {
+      var li = $("rung" + i);
+      var cls = LEVELS[i].ms ? "ms" : "";
+      if (screen === "play") {
+        if (log[i] && log[i].ok) cls += " done";
+        else if (i === lvl && !(log[i] && !log[i].ok)) cls += " now";
+      }
+      li.className = cls.trim();
+    }
+  }
+
+  function show(name) {
+    screen = name;
+    el.start.hidden = name !== "start";
+    el.play.hidden = name !== "play";
+    el.end.hidden = name !== "end";
+    el.stats.hidden = name !== "play";
+    el.ladder.hidden = name === "end";
+    paintLadder();
+  }
+
+  function showBestStart() {
+    var s = getStore();
+    el.bestStart.textContent = s.fresh
+      ? "Bạn chưa chơi lượt nào. Kỷ lục tiền thưởng sẽ hiện ở đây."
+      : "Kỷ lục của bạn: " + fmt(s.best) + " · Số lần nhận 2 tỷ: " + s.wins;
+  }
+
+  function newGame() {
+    pools = BANK.map(shuffle);
+    lvl = 0; won = 0; safe = 0; used = { swap: false, time: false }; log = [];
+    outcome = ""; payout = 0;
+    show("play");
+    loadQuestion();
+  }
+
+  function paintHelps() {
+    el.bSwap.disabled = used.swap || answered || pools[lvl].length < 2;
+    el.bTime.disabled = used.time || answered;
+    el.bSwap.textContent = used.swap ? "Đổi câu (đã dùng)" : "Đổi câu";
+    el.bTime.textContent = used.time ? "+10 giây (đã dùng)" : "+10 giây";
+    el.bStop.disabled = answered || lvl === 0;
+    resetStop();
+  }
+  function resetStop() {
+    stopArm = 0;
+    el.bStop.classList.remove("confirm");
+    el.bStop.textContent = "Dừng cuộc chơi";
+  }
+
+  function startTimer() {
+    totalMs = LEVELS[lvl].time * 1000;
+    deadline = performance.now() + totalMs;
+    el.timer.classList.remove("low");
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(tick);
+  }
+
+  function showQuestion() {
+    var q = pools[lvl][0];
+    el.statement.textContent = q.t;
+  }
+
+  function loadQuestion() {
+    answered = false;
+    var L = LEVELS[lvl];
+    el.qLevel.innerHTML = "Cấp <b>" + (lvl + 1) + " / " + LEVELS.length + "</b> · " + L.tag + (L.ms ? " · mốc an toàn ★" : "");
+    el.qPrize.innerHTML = "Câu này trị giá <b>" + fmt(L.prize) + "</b>";
+    el.sHold.textContent = fmt(won);
+    el.bTrue.disabled = false; el.bFalse.disabled = false;
+    el.bTrue.className = "btn"; el.bFalse.className = "btn";
+    el.feedback.innerHTML = "";
+    showQuestion();
+    paintHelps();
+    paintLadder();
+    startTimer();
+  }
+
+  function tick(now) {
+    if (answered || screen !== "play") return;
+    var left = Math.max(0, deadline - now);
+    el.bar.style.transform = "scaleX(" + (left / totalMs) + ")";
+    el.timer.classList.toggle("low", left < 4000);
+    if (left <= 0) { answer(null); return; }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function answer(choice) {
+    if (answered || screen !== "play") return;
+    answered = true;
+    cancelAnimationFrame(raf);
+    var q = pools[lvl][0];
+    var timedOut = choice === null;
+    var ok = !timedOut && choice === q.a;
+    log[lvl] = { lvl: lvl, t: q.t, a: q.a, ok: ok, timedOut: timedOut };
+    if (ok) {
+      won = LEVELS[lvl].prize;
+      if (LEVELS[lvl].ms) safe = won;
+    }
+    el.bTrue.disabled = true; el.bFalse.disabled = true;
+    (q.a ? el.bTrue : el.bFalse).classList.add("is-right");
+    if (!ok && !timedOut) (choice ? el.bTrue : el.bFalse).classList.add("is-wrong");
+    el.sHold.textContent = fmt(ok ? won : safe);
+    paintHelps(); paintLadder();
+
+    var label = ok ? "ĐÚNG!" : (timedOut ? "HẾT GIỜ" : "SAI!");
+    var verdict = "Nhận định này " + (q.a ? "đúng" : "sai") + ". ";
+    var btnText, hold;
+    if (ok && lvl === LEVELS.length - 1) {
+      outcome = "win"; btnText = "Nhận thưởng";
+      hold = "Bạn đã vượt qua cả 10 cấp.";
+    } else if (ok) {
+      btnText = "Lên cấp " + (lvl + 2);
+      hold = "Bạn đang có <b>" + fmt(won) + "</b>. Câu tiếp theo trị giá " + fmt(LEVELS[lvl + 1].prize) + ".";
+    } else {
+      outcome = "lose"; btnText = "Xem kết quả";
+      hold = safe > 0 ? "Bạn giữ được mốc an toàn <b>" + fmt(safe) + "</b>." : "Bạn chưa qua mốc an toàn nào.";
+    }
+    el.feedback.innerHTML =
+      '<span class="stamp ' + (ok ? "ok" : "bad") + '">' + label + '</span>' +
+      '<p class="explain"></p>' +
+      '<p class="holding">' + hold + '</p>' +
+      '<div class="next-row"><button class="btn primary" id="btnNext" type="button"></button></div>';
+    el.feedback.querySelector(".explain").textContent = verdict + q.e;
+    var nb = $("btnNext");
+    nb.textContent = btnText;
+    nb.addEventListener("click", next);
+    nb.focus({ preventScroll: true });
+  }
+
+  function next() {
+    if (screen !== "play" || !answered) return;
+    if (outcome) { finish(); return; }
+    lvl++;
+    loadQuestion();
+  }
+
+  function doSwap() {
+    if (screen !== "play" || answered || used.swap || pools[lvl].length < 2) return;
+    used.swap = true;
+    pools[lvl].push(pools[lvl].shift());
+    showQuestion();
+    startTimer();
+    paintHelps();
+  }
+  function doTime() {
+    if (screen !== "play" || answered || used.time) return;
+    used.time = true;
+    deadline += 10000;
+    totalMs += 10000;
+    paintHelps();
+  }
+  function doStop() {
+    if (screen !== "play" || answered || lvl === 0) return;
+    if (!stopArm) {
+      stopArm = 1;
+      el.bStop.classList.add("confirm");
+      el.bStop.textContent = "Bấm lần nữa để nhận " + fmt(won);
+      setTimeout(function () { if (!answered && stopArm) resetStop(); }, 4000);
+      return;
+    }
+    cancelAnimationFrame(raf);
+    answered = true;
+    outcome = "stop";
+    finish();
+  }
+
+  function remarkFor() {
+    if (outcome === "win") return "Chúc mừng! Bạn vượt qua cả 10 cấp và nhận " + fmt(payout) + " tiền thưởng trong trò chơi.";
+    if (outcome === "stop") return "Bạn dừng đúng lúc và mang về " + fmt(payout) + ".";
+    if (payout > 0) return "Rất tiếc, bạn sai ở cấp " + (lvl + 1) + ". Nhờ mốc an toàn, bạn vẫn mang về " + fmt(payout) + ".";
+    return "Rất tiếc, bạn sai ở cấp " + (lvl + 1) + " khi chưa qua mốc an toàn nào. Thử lại, các câu sẽ khác đi.";
+  }
+
+  function finish() {
+    cancelAnimationFrame(raf);
+    payout = outcome === "win" ? LEVELS[LEVELS.length - 1].prize : (outcome === "stop" ? won : safe);
+    reached = 0;
+    for (var i = 0; i < log.length; i++) if (log[i] && log[i].ok) reached++;
+    var s = getStore();
+    var best = Math.max(s.best, payout);
+    var wins = s.wins + (outcome === "win" ? 1 : 0);
+    setStore({ best: best, wins: wins });
+    show("end");
+    el.kicker.textContent = outcome === "win" ? "Chiến thắng" : (outcome === "stop" ? "Dừng cuộc chơi" : "Kết thúc lượt chơi");
+    el.amount.textContent = fmt(payout);
+    el.words.textContent = payout > 0 ? (function () {
+      for (var i = 0; i < LEVELS.length; i++) if (LEVELS[i].prize === payout) return LEVELS[i].words;
+      return "";
+    })() : "Không đồng nào";
+    el.remark.textContent = remarkFor() + (payout > s.best && outcome !== "win" && !s.fresh ? " Kỷ lục mới của bạn!" : "");
+    el.sumLevel.textContent = reached + "/" + LEVELS.length;
+    el.sumBest.textContent = short(best) === "0 tr" ? "0 đ" : short(best);
+    el.sumWins.textContent = wins;
+    el.review.innerHTML = "";
+    log.forEach(function (r) {
+      if (!r) return;
+      var li = document.createElement("li");
+      var lv = document.createElement("span");
+      lv.className = "lv";
+      lv.textContent = "Cấp " + (r.lvl + 1);
+      var mk = document.createElement("span");
+      mk.className = "mk " + (r.ok ? "ok" : "bad");
+      mk.textContent = r.ok ? "✓" : "✗";
+      var tx = document.createElement("span");
+      var em = document.createElement("em");
+      em.textContent = " (" + (r.a ? "Đúng" : "Sai") + (r.timedOut ? ", hết giờ" : "") + ")";
+      tx.appendChild(document.createTextNode(r.t));
+      tx.appendChild(em);
+      li.appendChild(lv); li.appendChild(mk); li.appendChild(tx);
+      el.review.appendChild(li);
+    });
+    $("btnAgain").focus({ preventScroll: true });
+  }
+
+  $("btnStart").addEventListener("click", newGame);
+  $("btnAgain").addEventListener("click", newGame);
+  el.bTrue.addEventListener("click", function () { answer(true); });
+  el.bFalse.addEventListener("click", function () { answer(false); });
+  el.bSwap.addEventListener("click", doSwap);
+  el.bTime.addEventListener("click", doTime);
+  el.bStop.addEventListener("click", doStop);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (screen !== "play") return;
+    var k = e.key;
+    if (!answered) {
+      if (k === "ArrowLeft" || k === "d" || k === "D" || k === "đ" || k === "Đ") { e.preventDefault(); answer(true); }
+      else if (k === "ArrowRight" || k === "s" || k === "S") { e.preventDefault(); answer(false); }
+    } else if (k === "ArrowRight") {
+      e.preventDefault(); next();
+    }
+  });
+
+  buildLadder();
+  show("start");
+  showBestStart();
+})();
+</script>
